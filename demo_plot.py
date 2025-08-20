@@ -8,10 +8,12 @@ from causet_mc import (
     longest_chain_length,
     monte_carlo_longest_chain,
     largest_antichain,
-    scaling_study
+    scaling_study,
+    curvature_proxy,
 )
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 if __name__ == "__main__":
     print("Welcome to the Causal Set Simulator!")
@@ -27,6 +29,7 @@ if __name__ == "__main__":
         d_est = estimate_dimension(f)
         L = longest_chain_length(R)
         AC = largest_antichain(R)
+        mean_dev, std_dev = curvature_proxy(R, sample_pairs=20, alpha=1.0)
 
         print(f"Ordering fraction: {f:.3f}")
         if d_est is not None:
@@ -34,6 +37,8 @@ if __name__ == "__main__":
         print(f"Longest chain length: {L}")
         print(f"Largest antichain size: {AC}")
         plot_causet(points, R, dim=dim, title="Single Causal Set")
+        print(f"Curvature proxy (mean±std): {mean_dev:.3f} ± {std_dev:.3f}  (≈0 flat)")
+
         
 
     elif mode == "mc":
@@ -53,7 +58,14 @@ if __name__ == "__main__":
         mean_AC = np.mean(AC_list)
         std_AC = np.std(AC_list)
         print(f"Largest antichain (MC): {mean_AC:.2f} ± {std_AC:.2f}")
-
+        devs=[]
+        for _ in range(trials):
+            pts = sprinkle(N, dim=dim)
+            R = causal_matrix(pts, dim=dim)
+            m, _ = curvature_proxy(R, sample_pairs=20, alpha=1.0)
+            devs.append(m)
+        print(f"Curvature proxy (MC): {np.mean(devs):.3f} ± {np.std(devs):.3f}  (≈0 flat)")
+    
     elif mode == "scaling":
         N_input = input("Enter list of N values (comma-separated, e.g., 20,50,100): ")
         N_list = [int(n.strip()) for n in N_input.split(",")]

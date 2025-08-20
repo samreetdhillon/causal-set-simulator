@@ -155,6 +155,95 @@ def scaling_study(N_list, dim=2, trials=50):
 
     return results
 
+def _interval_elements(R, p, q):
+    """Return indices in the Alexandrov interval I(p,q) = { r | p ≺ r ≺ q }."""
+    # R[p, r] True means p ≺ r ; R[r, q] True means r ≺ q
+    between = np.where(R[p, :] & R[:, q])[0]
+    return between[(between != p) & (between != q)]
+
+def curvature_proxy(R, sample_pairs=50, alpha=1.0):
+    """
+    Flatness-deviation proxy in 2D spirit:
+    For random comparable pairs (p,q), compare |I(p,q)| to alpha * L(p,q)^2 / 2.
+    Returns mean ± std of normalized deviation over sampled pairs.
+    
+    - R : reachability (transitive closure)
+    - sample_pairs : how many (p,q) with p≺q to sample
+    - alpha : calibration factor (~1). Tune so that flat 2D runs average near 0.
+    
+    Output: (mean_dev, std_dev), where each deviation is
+        dev(p,q) = ( |I| - (alpha/2)*L^2 ) / max(1, |I|)
+    so ~0 means "flat-like", positive means "more volume than flat", negative "less".
+    """
+    n = R.shape[0]
+    comps = np.argwhere(R)  # all p≺q
+    if comps.size == 0:
+        return np.nan, np.nan
+    rng = np.random.default_rng()
+    idx = rng.choice(len(comps), size=min(sample_pairs, len(comps)), replace=False)
+    pairs = comps[idx]
+
+    devs = []
+    # dynamic-programming longest-chain on induced subposet between p and q
+    for p, q in pairs:
+        I = _interval_elements(R, p, q)
+        # Build induced order among {p} ∪ I ∪ {q}
+        subset = np.concatenate(([p], I, [q]))
+        sub_index = {v:i for i,v in enumerate(subset)}
+        S = R[np.ix_(subset, subset)]
+        # Longest-chain length from p to q within S
+        L = _longest_chain_length_from_to(S, 0, len(subset)-1)
+        # Interval size
+        I_size = len(I)
+        # Flat 2D expectation ~ (alpha/2) * L^2 (alpha is a calibration constant)
+        expected = 0.5 * alpha * (L**2)
+        dev = (I_size - expected) / max(1, I_size)
+        devs.append(dev)
+
+    devs = np.asarray(devs, dtype=float)
+    return float(np.mean(devs)), float(np.std(devs))
+
+def _longest_chain_length_from_to(S, s, t):
+    """
+    Longest chain length in DAG S from node index s to node index t.
+    S is boolean reachability on the subposet.
+    """
+    n = S.shape[0]
+    # topological order: we can just use numeric since S is upper-triangular if original was time-ordered,
+    # but to be safe, do a DP using reachability.
+    L = np.zeros(n, dtype=int)
+    order = range(n)
+    for j in order:
+        preds = np.where(S[:, j])[0]
+        if preds.size:
+            L[j] = max(L[p] for p in preds) + 1
+        else:
+            L[j] = 1
+    # We want paths that start at s and end at t. If no path, return 0.
+    if not S[s, t] and s != t:
+        return 0
+    # Recompute DP constrained to nodes reachable from s and that reach t
+    reach_from_s = S[s, :]
+    reach_to_t = S[:, t]
+    mask = reach_from_s | (np.arange(n) == s)
+    mask &= reach_to_t | (np.arange(n) == t)
+    idx = np.where(mask)[0]
+    if idx.size == 0:
+        return 0
+    M = S[np.ix_(idx, idx)]
+    # map local indices
+    s_loc = int(np.where(idx == s)[0][0])
+    t_loc = int(np.where(idx == t)[0][0])
+    # DP again on M
+    L2 = np.zeros(len(idx), dtype=int)
+    for j in range(len(idx)):
+        preds = np.where(M[:, j])[0]
+        if preds.size:
+            L2[j] = max(L2[p] for p in preds) + 1
+        else:
+            L2[j] = 1
+    return int(L2[t_loc])
+
 # ------------------ Hasse diagram plotting ------------------
 
 def plot_causet(points, R, dim=2, title="Causal Set"):
