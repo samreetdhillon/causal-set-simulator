@@ -10,6 +10,11 @@ from causet_mc import (
     largest_antichain,
     scaling_study,
     curvature_proxy,
+    transitive_percolation,
+    interval_cardinalities,
+    midpoint_scaling_dimension,
+    benincasa_dowker_action_proxy,
+    csg_sequential_growth
 )
 
 import matplotlib.pyplot as plt
@@ -20,7 +25,7 @@ if __name__ == "__main__":
 
     dim = int(input("Enter spacetime dimension (2 or 3): "))
     N = int(input("Enter number of sprinkled points (e.g., 20): "))
-    mode = input("Choose mode: single / mc / scaling: ").strip().lower()
+    mode = input("Choose mode: single / mc / scaling / percolation / action / csg: ").strip().lower()
 
     if mode == "single":
         points = sprinkle(N, dim=dim)
@@ -113,7 +118,76 @@ if __name__ == "__main__":
 
         plt.tight_layout()
         plt.show()
+
+    elif mode == "percolation":
+        # generate a transitive percolation causal set and show stats
+        p = float(input("Enter percolation probability p (e.g., 0.05): "))
+        points, R = transitive_percolation(N, p=p, T=1.0)
+        f = ordering_fraction(R)
+        d_est = estimate_dimension(f)
+        L = longest_chain_length(R)
+        AC = largest_antichain(R)
+        print(f"Percolation model with p={p:.3f}")
+        print(f"Ordering fraction: {f:.3f}")
+        if d_est is not None:
+            print(f"Estimated dimension (Myrheim–Meyer): {d_est:.2f}")
+        print(f"Longest chain length: {L}")
+        print(f"Largest antichain size: {AC}")
+        plot_causet(points, R, dim=2, title=f"Transitive Percolation (p={p:.3f})")
+
+    elif mode == "action":
+        # compare action-proxy for sprinkled vs percolated sets
+        choice = input("Compare which ensembles? (sprinkle / percolation): ").strip().lower()
+        trials = int(input("Number of trials to average (e.g., 50): "))
+        sample_pairs = int(input("Sample pairs per run for action proxy (e.g., 200): "))
+
+        actions = []
+        for _ in range(trials):
+            if choice == "sprinkle":
+                pts = sprinkle(N, dim=2)
+                R = causal_matrix(pts, dim=2)
+            else:  # percolation
+                p = float(input("Enter percolation p (use same p for all runs): ")) if trials==1 else float(input("Enter percolation p (e.g., 0.05): "))
+                pts, R = transitive_percolation(N, p=p)
+            total_action, mean_dev, std_dev = benincasa_dowker_action_proxy(R, points=pts, sample_pairs=sample_pairs, alpha=1.0)
+            actions.append(total_action)
+
+        print(f"Action-proxy ({choice}) over {trials} trials: mean={np.mean(actions):.3f} ± {np.std(actions):.3f}")
     
+    elif mode == "csg":
+        # Classical Sequential Growth (CSG) demo
+        print("CSG mode: exact Rideout–Sorkin sequential growth (enumerates order ideals).")
+        print("Warning: exact CSG uses exponential enumeration; keep N small (<=18 recommended).")
+        use_geom = input("Use geometric coupling t_k = a^k? (y/n): ").strip().lower() == 'y'
+        if use_geom:
+            a = float(input("Enter geometric parameter a (e.g., 0.5): "))
+            points, R = csg_sequential_growth(N, geometric_a=a)
+            print(f"CSG run (geometric a={a}) completed for N={N}")
+        else:
+            # ask for comma-separated t_k weights
+            t_input = input("Enter t_k weights comma-separated (or leave blank for uniform): ").strip()
+            if t_input == "":
+                t_weights = None
+            else:
+                t_weights = [float(x.strip()) for x in t_input.split(",")]
+            points, R = csg_sequential_growth(N, t_weights=t_weights)
+            print(f"CSG run completed for N={N} with custom t_k (len={len(t_weights) if t_weights else 'default'})")
+
+        f = ordering_fraction(R)
+        d_est = estimate_dimension(f)
+        L = longest_chain_length(R)
+        AC = largest_antichain(R)
+        mean_dev, std_dev = curvature_proxy(R, sample_pairs=20, alpha=1.0)
+
+        print(f"Ordering fraction: {f:.3f}")
+        if d_est is not None:
+            print(f"Estimated dimension (Myrheim–Meyer): {d_est:.2f}")
+        print(f"Longest chain length: {L}")
+        print(f"Largest antichain size: {AC}")
+        print(f"Curvature proxy (mean±std): {mean_dev:.3f} ± {std_dev:.3f}  (≈0 flat)")
+
+        plot_causet(points, R, dim=2, title=f"CSG causal set (N={N})")
+
     else:
         print("Invalid mode. Choose 'single', 'mc', or 'scaling'.")
 
