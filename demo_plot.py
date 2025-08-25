@@ -1,4 +1,4 @@
-from causet_mc import (
+from causalset.causet_mc import (
     sprinkle,
     causal_matrix,
     ordering_fraction,
@@ -23,9 +23,13 @@ import numpy as np
 if __name__ == "__main__":
     print("Welcome to the Causal Set Simulator!")
 
+
     dim = int(input("Enter spacetime dimension (2 or 3): "))
-    N = int(input("Enter number of sprinkled points (e.g., 20): "))
     mode = input("Choose mode: single / mc / scaling / percolation / action / csg: ").strip().lower()
+
+    # Only ask for N if needed for the selected mode (but not for scaling, which asks for a list later)
+    if mode in ["single", "mc", "percolation", "action", "csg"]:
+        N = int(input("Enter number of sprinkled points (e.g., 20): "))
 
     if mode == "single":
         points = sprinkle(N, dim=dim)
