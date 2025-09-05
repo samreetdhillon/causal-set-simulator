@@ -71,17 +71,8 @@ For each observable, the program prints the computed value. Users can refer to t
 - **Benincasa–Dowker Action Proxy**: The `action` mode computes an action-like observable for causal sets, useful for comparing different models.
 - **Classical Sequential Growth (CSG) Model**: The `csg` mode demonstrates the Rideout–Sorkin sequential growth process for small N.
 - **Scaling Study**: Prints and plots the mean and standard deviation for all observables (ordering fraction, dimension, longest chain, largest antichain) as N increases.
-- **Improved Output**: Results are printed in a clear, tabular format for each N in scaling mode.
-- **Visualization**: Scaling mode now shows four plots: ordering fraction, dimension, longest chain, and largest antichain vs N.
 - **mc**: Runs multiple sprinklings, computes mean and std of observables.
 - **scaling**: Runs Monte Carlo studies for a list of N values, prints and plots scaling of observables.
-
-### New/Updated Features
-
-- **Curvature Proxy**: Both single and Monte Carlo modes now print a "curvature proxy" (mean ± std), which gives a rough idea of the set's curvature (should be ≈0 for flat spacetime).
-- **Scaling Study**: Now prints and plots the mean and standard deviation for all observables (ordering fraction, dimension, longest chain, largest antichain) as N increases.
-- **Improved Output**: Results are printed in a clear, tabular format for each N in scaling mode.
-- **Visualization**: Scaling mode now shows four plots: ordering fraction, dimension, longest chain, and largest antichain vs N.
 
 ---
 
@@ -103,8 +94,7 @@ Curvature proxy (mean±std): 0.003 ± 0.012  (≈0 flat)
 
 ## References
 
-- Myrheim, J. (1978). Statistical geometry.
-- Meyer, D. A. (1988). The dimension of causal sets.
+- Surya, S. (2019). The Causal Set Approach to Quantum Gravity.
 
 ---
 
