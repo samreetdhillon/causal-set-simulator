@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Dhillon"
+  given-names: "Samreet"
+  orcid: "https://orcid.org/0009-0000-1001-1529"
+title: "Causal Set Simulator  "
+version: 1.0.0
+date-released: 2025-09-14
+url: "https://github.com/samreetdhillon/cst-demo"
