@@ -14,10 +14,30 @@ This project simulates and analyzes random causal sets ("sprinklings") in 2D or 
 
 ---
 
-## Files
+## Project Structure
 
-- [`causet_mc.py`](causet_mc.py): Core library for generating and analyzing causal sets.
-- [`demo_plot.py`](demo_plot.py): Interactive script for running simulations and plotting results.
+```
+cst-demo/
+├── main.py                      # Entry point - runs the simulator
+├── requirements.txt             # Project dependencies
+├── src/                         # Source code modules
+│   ├── __init__.py             # Package initialization
+│   ├── core_operations.py      # Sprinkling, causal matrix, percolation
+│   ├── observables.py          # Ordering fraction, dimension estimation, chains
+│   ├── monte_carlo.py          # MC simulations and scaling studies
+│   ├── visualization.py        # Plotting and Hasse diagrams
+│   └── interface.py            # User interaction logic
+├── causalset/                   # Legacy code (deprecated)
+└── outputs/                     # Output directory for results
+```
+
+### Module Breakdown
+
+- **core_operations.py**: Core causal set operations including sprinkling, causal matrix computation, transitive percolation, and interval calculations
+- **observables.py**: Observable quantities and estimators (ordering fraction, Myrheim-Meyer dimension, longest chain, largest antichain)
+- **monte_carlo.py**: Statistical analysis including Monte Carlo dimension estimation and scaling studies
+- **visualization.py**: Plotting tools for visualizing causal sets with Hasse diagrams
+- **interface.py**: User interface for interactive simulation with mode-specific functions
 
 ---
 
@@ -31,7 +51,7 @@ This project simulates and analyzes random causal sets ("sprinklings") in 2D or 
 Install dependencies with:
 
 ```sh
-pip install numpy matplotlib networkx
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -39,7 +59,7 @@ pip install numpy matplotlib networkx
 Run the interactive demo:
 
 ```sh
-python demo_plot.py
+python main.py
 ```
 
 You will be prompted to select:
