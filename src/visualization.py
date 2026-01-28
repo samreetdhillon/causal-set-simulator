@@ -27,7 +27,7 @@ def hasse_edges_from_R(R):
     return edges
 
 
-def plot_causet(points, R, dim=2, title="Causal Set", show=True, save_path=None, draw_hasse=True):
+def plot_causet(points, R, T=1.0, dim=2, title="Causal Set", show=True, save_path=None, draw_hasse=True):
     # Plot Hasse diagram embedding.
     N = len(points)
     if N == 0:
@@ -41,44 +41,71 @@ def plot_causet(points, R, dim=2, title="Causal Set", show=True, save_path=None,
         edges = [tuple(e) for e in np.argwhere(R)]
 
     if dim == 2 or points.shape[1] == 2:
-        # 2D embedding: (x, t) so time on vertical axis
+        # 1. Create the figure and axis first
         fig, ax = plt.subplots(figsize=(6, 6))
-        pos = {i: (points[i, 1], points[i, 0]) for i in range(N)}  # x horizontal, t vertical
+    
+        # 2. Draw the Lightcone/Diamond boundaries
+        t_vals = np.linspace(-T/2, T/2, 100)
+        # Boundary lines: |x| = T/2 - |t|
+        ax.plot(T/2 - np.abs(t_vals), t_vals, 'r--', alpha=0.3, label="Causal Boundary")
+        ax.plot(-(T/2 - np.abs(t_vals)), t_vals, 'r--', alpha=0.3)
+        
+        # 3. Setup the Graph
+        pos = {i: (points[i, 1], points[i, 0]) for i in range(N)}
         G = nx.DiGraph()
         G.add_nodes_from(range(N))
         G.add_edges_from(edges)
 
-        # nodes
-        nx.draw_networkx_nodes(G, pos, node_size=60, node_color="skyblue", ax=ax)
-        # edges with arrowheads
+        # 4. Draw the actual Causet elements
+        nx.draw_networkx_nodes(G, pos, node_size=40, node_color="skyblue", ax=ax, edgecolors='black', linewidths=0.5)
         nx.draw_networkx_edges(
-            G, pos, edgelist=edges, arrowstyle='-|>', arrowsize=12,
-            connectionstyle='arc3,rad=0.0', ax=ax
+            G, pos, edgelist=edges, arrowstyle='-|>', arrowsize=10,
+            connectionstyle='arc3,rad=0.0', ax=ax, alpha=0.4
         )
-        ax.set_xlabel('space (x)')
-        ax.set_ylabel('time (t)')
+        
+        # 5. Formatting
+        ax.set_xlabel('Space (x)')
+        ax.set_ylabel('Time (t)')
         ax.set_title(title)
-        ax.invert_yaxis()  # optional: make earlier times at top if you prefer
+        ax.grid(True, linestyle=':', alpha=0.5)
 
     else:
-        # 3D plotting: use (x,y,t) but put time as z for clarity (or choose order you like)
-        fig = plt.figure(figsize=(8, 6))
+        # 3D plotting: use (x,y,t) with time as z (upward flow)
+        fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(111, projection='3d')
+        
+        # 1. Draw the Diamond Wireframe (Circular Cross-sections)
+        # We create circles at different time slices 'tz'
+        n_slices = 10
+        theta = np.linspace(0, 2 * np.pi, 50)
+        for tz in np.linspace(-T/2, T/2, n_slices):
+            radius = T/2 - np.abs(tz)
+            if radius > 0:
+                cx = radius * np.cos(theta)
+                cy = radius * np.sin(theta)
+                cz = np.full_like(theta, tz)
+                ax.plot(cx, cy, cz, 'r--', alpha=0.15) # Light red dashed rings
+
+        # 2. Draw the vertical "tips" axis
+        ax.plot([0, 0], [0, 0], [-T/2, T/2], 'r--', alpha=0.2)
+
+        # 3. Scatter the points
         xs = points[:, 1]
         ys = points[:, 2]
-        zs = points[:, 0]
-        ax.scatter(xs, ys, zs, s=40)
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('t')
-        ax.set_title(title)
+        zs = points[:, 0] # Time
+        ax.scatter(xs, ys, zs, s=40, c=zs, cmap='viridis', edgecolors='k', alpha=0.8)
 
-        # draw Hasse edges as 3D lines (no arrows)
+        # 4. Draw Hasse edges as 3D lines
         for i, j in edges:
-            x_line = [points[i, 1], points[j, 1]]
-            y_line = [points[i, 2], points[j, 2]]
-            z_line = [points[i, 0], points[j, 0]]
-            ax.plot(x_line, y_line, z_line, linewidth=0.8)
+            ax.plot([points[i, 1], points[j, 1]], 
+                    [points[i, 2], points[j, 2]], 
+                    [points[i, 0], points[j, 0]], 
+                    color='black', linewidth=0.5, alpha=0.3)
+
+        ax.set_xlabel('Space (x)')
+        ax.set_ylabel('Space (y)')
+        ax.set_zlabel('Time (t)')
+        ax.set_title(title)
 
     plt.tight_layout()
     if save_path:

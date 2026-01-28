@@ -1,4 +1,7 @@
 import numpy as np
+import networkx as nx
+from scipy.special import gamma
+from scipy.optimize import brentq
 
 # ------------------ Observables/Estimators ------------------
 
@@ -11,15 +14,33 @@ def ordering_fraction(R):
     related_pairs = np.sum(R)
     return related_pairs / total_pairs
 
+def myrheim_meyer_func(d, r_observed):
+    """
+    The theoretical relation for a d-dimensional causal diamond:
+    f(d) = Gamma(d+1) * Gamma(d/2) / (4 * Gamma(3d/2))
+    """
+    if d <= 0:
+        return 1.0  # Avoid division by zero/negative
+    
+    theoretical_r = (gamma(d + 1) * gamma(d / 2)) / (4 * gamma(1.5 * d))
+    return theoretical_r - r_observed
+
 def estimate_dimension(r):
     """
-    Estimate spacetime dimension from ordering fraction using
-    the Myrheim–Meyer relation: r(d) = 1 - 1/2^(d-1)
-    Inversion: d = 1 + log(1/(1-r))/log(2)
+    Accurately estimate spacetime dimension d by finding the root of 
+    the Myrheim–Meyer relation.
     """
-    if r <= 0 or r >= 1:
+    if r <= 0 or r >= 0.5: # r=0.5 is the limit as d -> 0
         return None
-    return 1 + np.log(1/(1-r)) / np.log(2)
+    
+    try:
+        # We search for d in the range [0.5, 10.0]
+        # Most physical simulations stay within this bound.
+        d_est = brentq(myrheim_meyer_func, 0.5, 10.0, args=(r,))
+        return d_est
+    except ValueError:
+        # If no root is found in the interval
+        return None
 
 def longest_chain_length(R):
     """Longest chain length using dynamic programming on DAG R"""
@@ -72,20 +93,28 @@ def _longest_chain_length_from_to(S, s, t):
             L2[j] = 1
     return int(L2[t_loc])
 
+
 def largest_antichain(R):
     """
-    Estimate the size of the largest antichain in a causal set.
-    Greedy approximation: pick nodes not related to any already chosen.
+    Computes the exact width of the poset (largest antichain)
+    using Dilworth's Theorem via Maximum Bipartite Matching.
     """
     N = R.shape[0]
-    remaining = set(range(N))
-    antichain = []
+    # Create a bipartite graph
+    G = nx.Graph()
 
-    while remaining:
-        node = remaining.pop()
-        antichain.append(node)
-        # Remove all nodes related to 'node' (both ways)
-        related = set(np.where(R[node, :] | R[:, node])[0])
-        remaining -= related
+    u_nodes = [f"u{i}" for i in range(N)]
+    v_nodes = [f"v{i}" for i in range(N)]
+    G.add_nodes_from(u_nodes)
+    G.add_nodes_from(v_nodes)
 
-    return len(antichain)
+    for i in range(N):
+        for j in range(N):
+            if R[i, j] == 1:
+                # Bipartite mapping: node i in set U connects to node j in set V
+                G.add_edge(f"u{i}", f"v{j}")
+    
+    # Matching size
+    matching = nx.bipartite.hopcroft_karp_matching(G, top_nodes=u_nodes)
+    # Matching size is len(matching) // 2 because it returns dict with both directions
+    return N - (len(matching) // 2)

@@ -16,18 +16,26 @@ def sprinkle(N, dim=2, T=1.0, rng=None):
             x = rng.uniform(-T/2, T/2)
             if abs(x) <= (T/2 - abs(t)):
                 points.append((t, x))
+
     elif dim == 3:
         while len(points) < N:
             t = rng.uniform(-T/2, T/2)
-            rmax = T/2 - abs(t)
-            x = rng.uniform(-rmax, rmax)
-            y = rng.uniform(-rmax, rmax)
-            if x**2 + y**2 <= rmax**2:
-                points.append((t, x, y))
+            max_r = T/2 - abs(t) # The radius of the disk at time t
+            
+            if max_r > 0:
+                # Use sqrt(uniform) to ensure uniform density across the disk area
+                r = max_r * np.sqrt(rng.uniform(0, 1))
+                theta = rng.uniform(0, 2 * np.pi)
+                
+                x = r * np.cos(theta)
+                y = r * np.sin(theta)
+                
+                points.append([t, x, y])
+
     else:
         raise ValueError("dim must be 2 or 3")
-    
-    return np.array(points)
+    pts = np.array(points)
+    return pts[np.argsort(pts[:, 0])]  # sort by time coordinate
 
 # ------------------ Causal relations ------------------
 
@@ -37,7 +45,7 @@ def causal_matrix(points, dim=None):
     R[i,j] = 1 if i precedes j in causal set (inside lightcone)
     """
     N = len(points)
-    R = np.zeros((N, N), dtype=int)
+    R = np.zeros((N, N), dtype=np.int8)
     for i in range(N):
         for j in range(N):
             if points[i][0] < points[j][0]:  # time ordering

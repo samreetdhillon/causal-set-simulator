@@ -20,31 +20,42 @@ def run_single_mode(dim, N):
         print(f"Estimated dimension (Myrheim–Meyer): {d_est:.2f}")
     print(f"Longest chain length: {L}")
     print(f"Largest antichain size: {AC}")
-    plot_causet(points, R, dim=dim, title="Single Causal Set")
-
+    plot_causet(points, R, T=1.0, dim=dim, title="Single Causal Set")
 
 def run_mc_mode(dim, N, trials):
-    """Run Monte Carlo analysis"""
-    mean_d, std_d = monte_carlo_dimension(N, dim, trials=trials)
-    mean_L, std_L = monte_carlo_longest_chain(N, dim=dim, trials=trials)
-    if mean_d is not None:
-        print(f"Monte Carlo estimated dimension: {mean_d:.2f} ± {std_d:.2f} (from {trials} trials)")
-    else:
-        print("Could not compute dimension estimate.")
-    print(f"Monte Carlo longest chain: {mean_L:.2f} ± {std_L:.2f}")
-    AC_list = []
-    for _ in range(trials):
-        pts = sprinkle(N, dim=dim)
-        R = causal_matrix(pts, dim=dim)
-        AC_list.append(largest_antichain(R))
-    mean_AC = np.mean(AC_list)
-    std_AC = np.std(AC_list)
-    print(f"Largest antichain (MC): {mean_AC:.2f} ± {std_AC:.2f}")
-    devs=[]
-    for _ in range(trials):
-        pts = sprinkle(N, dim=dim)
-        R = causal_matrix(pts, dim=dim)
+    """Run Monte Carlo analysis using the parallelized scaling_study engine"""
+    print(f"\nStarting Monte Carlo study: N={N}, dim={dim}, trials={trials}...")
+    
+    # Use the existing scaling_study to do the heavy lifting in parallel
+    results = scaling_study([N], dim=dim, trials=trials)
 
+    # Extract values (since [N] was a list of one, results are at index 0)
+    m_d = results['dimension_mean'][0]
+    s_d = results['dimension_std'][0]
+    
+    m_L = results['longest_chain_mean'][0]
+    s_L = results['longest_chain_std'][0]
+    
+    m_AC = results['largest_antichain_mean'][0]
+    s_AC = results['largest_antichain_std'][0]
+    
+    m_r = results['ordering_fraction_mean'][0]
+    s_r = results['ordering_fraction_std'][0]
+
+    # Print Report
+    print("-" * 30)
+    print(f"RESULTS FOR N={N} ({trials} trials)")
+    print("-" * 30)
+    print(f"Ordering fraction:   {m_r:.4f} ± {s_r:.4f}")
+    
+    if m_d is not None:
+        print(f"Estimated Dimension: {m_d:.2f} ± {s_d:.2f}")
+    else:
+        print("Estimated Dimension: Could not invert Myrheim-Meyer.")
+        
+    print(f"Longest Chain (L):  {m_L:.2f} ± {s_L:.2f}")
+    print(f"Largest Antichain:  {m_AC:.2f} ± {s_AC:.2f}")
+    print("-" * 30)
 
 def run_scaling_mode(dim, N_list, trials):
     """Run scaling study and plot results"""
@@ -77,6 +88,9 @@ def run_scaling_mode(dim, N_list, trials):
 
     axs[2].errorbar(results['N'], results['longest_chain_mean'], yerr=results['longest_chain_std'],
                     fmt='o-', capsize=5, label='Longest chain L', color='orange')
+    
+    axs[2].set_xscale('log')
+    axs[2].set_yscale('log')
     axs[2].set_xlabel('N')
     axs[2].set_ylabel('Longest chain L')
     axs[2].set_title('Longest chain vs N')
@@ -92,7 +106,7 @@ def run_scaling_mode(dim, N_list, trials):
     plt.show()
 
 
-def run_percolation_mode(N, p):
+def run_percolation_mode(dim, N, p):
     """Run transitive percolation analysis"""
     points, R = transitive_percolation(N, p=p, T=1.0)
     f = ordering_fraction(R)
@@ -105,7 +119,7 @@ def run_percolation_mode(N, p):
         print(f"Estimated dimension (Myrheim–Meyer): {d_est:.2f}")
     print(f"Longest chain length: {L}")
     print(f"Largest antichain size: {AC}")
-    plot_causet(points, R, dim=2, title=f"Transitive Percolation (p={p:.3f})")
+    plot_causet(points, R, dim=dim, title=f"Transitive Percolation (p={p:.3f})")
 
 
 def run_interactive_interface():
@@ -135,7 +149,7 @@ def run_interactive_interface():
     elif mode == "percolation":
         # generate a transitive percolation causal set and show stats
         p = float(input("Enter percolation probability p (e.g., 0.05): "))
-        run_percolation_mode(N, p)
+        run_percolation_mode(dim, N, p)
 
     else:
         print("Invalid mode. Choose 'single', 'mc', 'scaling', 'percolation', 'action' or 'csg'.")
