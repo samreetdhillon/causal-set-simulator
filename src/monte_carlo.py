@@ -4,19 +4,42 @@ from src.observables import ordering_fraction, estimate_dimension, longest_chain
 from tqdm import tqdm
 from multiprocessing import Pool, cpu_count
 
-def run_single_trial(N, dim):
-    """Worker function for a single simulation run."""
+def run_single_trial(N, dim, padding=0.0):
+    """Worker function for a single simulation run with optional truncation."""
+    # 1. Sprinkle the total number of points
     pts = sprinkle(N, dim=dim)
-    R = causal_matrix(pts, dim=dim)
     
-    r = ordering_fraction(R)
-    d_est = estimate_dimension(r)
-    L = longest_chain_length(R)
-    AC = largest_antichain(R)
-    
-    return r, d_est, L, AC
+    # 2. Apply Bulk Truncation if padding is provided
+    if padding > 0:
+        t = pts[:, 0]
+        t_min, t_max = -0.5 + padding, 0.5 - padding
+        
+        if dim == 2:
+            # Spatial distance |x| < (width at time t)
+            mask = (t > t_min) & (t < t_max) & (np.abs(pts[:, 1]) < (0.5 - padding - np.abs(t)))
+        else: # dim == 3
+            # Radial distance sqrt(x^2 + y^2) < (width at time t)
+            r_sq = pts[:, 1]**2 + pts[:, 2]**2
+            mask = (t > t_min) & (t < t_max) & (np.sqrt(r_sq) < (0.5 - padding - np.abs(t)))
+        
+        pts = pts[mask]
 
-def scaling_study(N_list, dim=2, trials=50):
+    # 3. Calculate metrics ONLY if we have enough points left
+    if len(pts) > 1:
+        # Use the faster vectorized matrix function
+        R = causal_matrix(pts, dim)
+        
+        r = ordering_fraction(R)
+        d_est = estimate_dimension(r)
+        L = longest_chain_length(R)
+        AC = largest_antichain(R)
+        
+        return r, d_est, L, AC
+    
+    # Return failure defaults if truncation emptied the set
+    return 0, None, 0, 0
+
+def scaling_study(N_list, dim=2, trials=50, padding=0.0):
     results = {
         'N': [],
         'ordering_fraction_mean': [], 'ordering_fraction_std': [],
@@ -32,6 +55,7 @@ def scaling_study(N_list, dim=2, trials=50):
             
             # This prepares 'trials' number of tasks for this specific N
             # pool.starmap runs run_single_trial(N, dim) multiple times in parallel
+            trial_tasks = [(N, dim, padding)] * trials
             trial_data = pool.starmap(run_single_trial, [(N, dim)] * trials)
             
             # trial_data is now a list of tuples: [(r, d, L, AC), (r, d, L, AC), ...]

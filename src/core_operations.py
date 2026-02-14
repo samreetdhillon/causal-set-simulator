@@ -38,21 +38,32 @@ def sprinkle(N, dim=2, T=1.0, rng=None):
     return pts[np.argsort(pts[:, 0])]  # sort by time coordinate
 
 # ------------------ Causal relations ------------------
-
-def causal_matrix(points, dim=None):
-    """
-    Construct causal adjacency (reachability) matrix.
-    R[i,j] = 1 if i precedes j in causal set (inside lightcone)
-    """
+def causal_matrix(points, dim):
     N = len(points)
-    R = np.zeros((N, N), dtype=np.int8)
-    for i in range(N):
-        for j in range(N):
-            if points[i][0] < points[j][0]:  # time ordering
-                dt = points[j][0] - points[i][0]
-                dx2 = np.sum((np.array(points[j][1:]) - np.array(points[i][1:]))**2)
-                if dx2 <= dt**2:  # within lightcone
-                    R[i, j] = 1
+    # Ensure points are sorted by time (they should be from sprinkle, but this is safe)
+    # If points aren't sorted, the DP longest chain might fail.
+    
+    t = points[:, 0]
+    # We want R[i, j] = 1 IF point i is in the past of point j
+    # This means t[j] - t[i] > 0
+    t_row = t[:, np.newaxis] # Past point candidate
+    t_col = t[np.newaxis, :] # Future point candidate
+    
+    dt = t_col - t_row # Positive if col is in the future of row
+    
+    if dim == 2:
+        x = points[:, 1]
+        dx = x[np.newaxis, :] - x[:, np.newaxis]
+        mask = (dt > 0) & (dt**2 - dx**2 >= 0)
+    elif dim == 3:
+        x = points[:, 1]
+        y = points[:, 2]
+        dx = x[np.newaxis, :] - x[:, np.newaxis]
+        dy = y[np.newaxis, :] - y[:, np.newaxis]
+        mask = (dt > 0) & (dt**2 - dx**2 - dy**2 >= 0)
+        
+    R = np.zeros((N, N), dtype=int)
+    R[mask] = 1
     return R
 
 # ------------------ Growth models & helpers ------------------

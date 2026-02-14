@@ -5,29 +5,61 @@ from src.observables import ordering_fraction, estimate_dimension, longest_chain
 from src.monte_carlo import monte_carlo_dimension, monte_carlo_longest_chain, scaling_study
 from src.visualization import plot_causet
 
-
-def run_single_mode(dim, N):
-    """Run single causal set generation and analysis"""
+def run_single_mode(dim, N, padding=0.2):
+    """Run single causal set generation with Bulk Truncation"""
+    # 1. Sprinkle N points into the global diamond (T=1.0)
     points = sprinkle(N, dim=dim)
-    R = causal_matrix(points, dim=dim)
-    f = ordering_fraction(R)
-    d_est = estimate_dimension(f)
-    L = longest_chain_length(R)
-    AC = largest_antichain(R)
+    
+    # 2. Define the 'Bulk' sub-interval tips
+    # We look at an interval between -0.5 + padding and 0.5 - padding
+    t_min, t_max = -0.5 + padding, 0.5 - padding
+    
+    # 3. Filter points: only keep those inside the inner diamond
+    # A point is in the diamond if |spatial_dist| < (t_max - t) and (t - t_min)
+    t = points[:, 0]
+    if dim == 2:
+        x = points[:, 1]
+        inner_mask = (t > t_min) & (t < t_max) & (np.abs(x) < (0.5 - padding - np.abs(t)))
+    else: # dim == 3
+        x, y = points[:, 1], points[:, 2]
+        r = np.sqrt(x**2 + y**2)
+        inner_mask = (t > t_min) & (t < t_max) & (r < (0.5 - padding - np.abs(t)))
+    
+    inner_points = points[inner_mask]
+    N_inner = len(inner_points)
+    
+    if N_inner < 2:
+        print("Error: Padding too high or N too low. No points in the bulk!")
+        return
 
+    # 4. Generate Causal Matrix for the BULK points only
+    R_inner = causal_matrix(inner_points, dim=dim)
+    
+    # 5. Calculate Observables
+    f = ordering_fraction(R_inner)
+    d_est = estimate_dimension(f)
+    L = longest_chain_length(R_inner)
+    AC = largest_antichain(R_inner)
+
+    print(f"--- Bulk Truncation Analysis (Inner N: {N_inner}) ---")
     print(f"Ordering fraction: {f:.3f}")
     if d_est is not None:
-        print(f"Estimated dimension (Myrheim–Meyer): {d_est:.2f}")
+        print(f"Estimated dimension (MM): {d_est:.2f}")
     print(f"Longest chain length: {L}")
     print(f"Largest antichain size: {AC}")
-    plot_causet(points, R, T=1.0, dim=dim, title="Single Causal Set")
+    
+    # Plot the full set but highlight the bulk? 
+    # For now, let's just plot the inner causet to see the improved structure
+    #plot_causet(inner_points, R_inner, dim=dim, title=f"Bulk Causal Set (dim={dim})")
 
-def run_mc_mode(dim, N, trials):
+
+def run_mc_mode(dim, N, trials, padding=0.0):
     """Run Monte Carlo analysis using the parallelized scaling_study engine"""
     print(f"\nStarting Monte Carlo study: N={N}, dim={dim}, trials={trials}...")
     
     # Use the existing scaling_study to do the heavy lifting in parallel
-    results = scaling_study([N], dim=dim, trials=trials)
+    padding=padding
+    results = scaling_study([N], dim=dim, trials=trials, padding=padding)
 
     # Extract values (since [N] was a list of one, results are at index 0)
     m_d = results['dimension_mean'][0]
@@ -57,9 +89,10 @@ def run_mc_mode(dim, N, trials):
     print(f"Largest Antichain:  {m_AC:.2f} ± {s_AC:.2f}")
     print("-" * 30)
 
-def run_scaling_mode(dim, N_list, trials):
+def run_scaling_mode(dim, N_list, trials, padding=0.0):
     """Run scaling study and plot results"""
-    results = scaling_study(N_list, dim=dim, trials=trials)
+    padding=padding
+    results = scaling_study(N_list, dim=dim, trials=trials, padding=padding)
 
     print("\nScaling Study Results:")
     for i, N in enumerate(results['N']):
@@ -121,35 +154,60 @@ def run_percolation_mode(dim, N, p):
     print(f"Largest antichain size: {AC}")
     plot_causet(points, R, dim=dim, title=f"Transitive Percolation (p={p:.3f})")
 
-
 def run_interactive_interface():
     """Main interactive interface for the causal set simulator"""
     print("Welcome to the Causal Set Simulator!")
-
+    
+    # Dimension selection
     dim = int(input("Enter spacetime dimension (2 or 3): "))
-    mode = input("Choose mode: single / mc / scaling / percolation: ").strip().lower()
+    
+    # Mode selection via number keys
+    print("\nChoose mode:")
+    print("1. Single Run")
+    print("2. Monte Carlo (MC)")
+    print("3. Scaling Study")
+    print("4. Transitive Percolation")
+    mode_choice = input("Select an option (1-4): ").strip()
 
-    # Only ask for N if needed for the selected mode (but not for scaling, which asks for a list later)
+    # Mapping choices to your original logic
+    mode_map = {'1': 'single', '2': 'mc', '3': 'scaling', '4': 'percolation'}
+    mode = mode_map.get(mode_choice)
+
+    if not mode:
+        print("Invalid selection. Please choose 1-4.")
+        return
+
+    # Check for Bulk Truncation if in 3D and not Percolation
+    padding = 0.0
+    if dim == 3 and mode in ["single", "mc", "scaling"]:
+        use_trunc = input("Enable Bulk Truncation for better 3D accuracy? (y/n): ").lower()
+        if use_trunc == 'y':
+            padding = float(input("Enter padding (0.1 to 0.2 recommended): "))
+
+    # Get N for modes that require a single N value
     if mode in ["single", "mc", "percolation"]:
-        N = int(input("Enter number of sprinkled points (e.g., 20): "))
+        N = int(input(f"Enter number of sprinkled points (e.g., 20): "))
 
+    # Execute Modes
     if mode == "single":
-        run_single_mode(dim, N)
+        # Pass padding to run_single_mode
+        run_single_mode(dim, N, padding=padding)
 
     elif mode == "mc":
         trials = int(input("Enter number of trials: "))
-        run_mc_mode(dim, N, trials)
+        # Note: You'll need to update run_mc_mode signature to accept padding
+        run_mc_mode(dim, N, trials, padding=padding)
 
     elif mode == "scaling":
-        N_input = input("Enter list of N values (comma-separated, e.g., 20,50,100): ")
+        N_input = input("Enter list of N values (comma-separated, e.g., 50,100,200): ")
         N_list = [int(n.strip()) for n in N_input.split(",")]
         trials = int(input("Enter number of Monte Carlo trials per N: "))
-        run_scaling_mode(dim, N_list, trials)
+        # Note: You'll need to update run_scaling_mode signature to accept padding
+        run_scaling_mode(dim, N_list, trials, padding=padding)
 
     elif mode == "percolation":
-        # generate a transitive percolation causal set and show stats
         p = float(input("Enter percolation probability p (e.g., 0.05): "))
         run_percolation_mode(dim, N, p)
 
     else:
-        print("Invalid mode. Choose 'single', 'mc', 'scaling', 'percolation', 'action' or 'csg'.")
+        print("Invalid selection.")

@@ -47,7 +47,7 @@ def plot_causet(points, R, T=1.0, dim=2, title="Causal Set", show=True, save_pat
         # 2. Draw the Lightcone/Diamond boundaries
         t_vals = np.linspace(-T/2, T/2, 100)
         # Boundary lines: |x| = T/2 - |t|
-        ax.plot(T/2 - np.abs(t_vals), t_vals, 'r--', alpha=0.3, label="Causal Boundary")
+        ax.plot(T/2 - np.abs(t_vals), t_vals, 'r--', alpha=0.3  , label="Causal Boundary")
         ax.plot(-(T/2 - np.abs(t_vals)), t_vals, 'r--', alpha=0.3)
         
         # 3. Setup the Graph

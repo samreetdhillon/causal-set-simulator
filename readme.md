@@ -2,9 +2,7 @@
 
 A Python simulator for studying causal sets in 2D or 3D Minkowski spacetime. Generate random sprinklings, compute observables, perform statistical analyses, and visualize results with Hasse diagrams.
 
-```
 Read the full project report [here](https://drive.google.com/file/d/10XACWFf3s4tN7q19EYO7oer3a2Uxh0Ax/view?usp=sharing)
-```
 
 ---
 
