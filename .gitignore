@@ -42,8 +42,17 @@ outputs/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
+*.nbconvert.ipynb
+.jupyter/
+jupyter_runtime/
 
 # Testing
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Python packaging
+__pypackages__/
+
+# Env files
+.env

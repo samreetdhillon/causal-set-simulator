@@ -31,7 +31,12 @@ cst-demo/
 │   ├── monte_carlo.py          # Statistical analysis and scaling studies
 │   ├── visualization.py        # Hasse diagrams and result plots
 │   └── interface.py            # Interactive command-line interface
-├── notebooks/                   # (Empty - for Jupyter notebooks)
+├── notebooks/                   # Jupyter notebooks
+│   ├── 00_project_overview.ipynb
+│   ├── 01_core_operations.ipynb
+│   ├── 02_observables.ipynb
+│   ├── 03_monte_carlo_and_scaling.ipynb
+│   └── 04_percolation_and_visualization.ipynb
 └── outputs/                     # (Empty - for generated results)
 ```
 
@@ -120,6 +125,12 @@ print(f"Longest chain: {L}")
 print(f"Largest antichain: {A}")
 ```
 
+### Notebooks
+
+Open the notebooks in `notebooks/` for a guided walkthrough of the simulator.
+If `scipy` appears missing in a notebook, make sure the notebook kernel is
+using the same Python environment where you installed dependencies.
+
 ## Analysis Modes
 
 ### `single`
@@ -202,14 +213,19 @@ Or using the provided `CITATION.cff` file.
 
 ## References
 
-- Surya, S. (2019). "The Causal Set Approach to Quantum Gravity." _Living Reviews in Relativity_, 22(1), 5.
-- Bombelli, L., Lee, J., Meyer, D., & Sorkin, R. (1987). "Space-time as a causal set." _Physical Review Letters_, 59(5), 521.
+- Luca Bombelli, Joohan Lee, David Meyer, and Rafael D. Sorkin. Space-time as a causal set.
+  Physical Review Letters, 59:521–524, 1987. doi: 10.1103/PhysRevLett.59.521.
+- Jan Myrheim. Statistical geometry. Technical Report TH-2538, CERN, 1978.
+- David A. Meyer. The Dimension of Causal Sets. PhD thesis, Massachusetts Institute of
+  Technology, 1988. URL https://dspace.mit.edu/handle/1721.1/14356.
+- Graham Brightwell and Ruth Gregory. Structure of random discrete spacetime. Physical
+  Review Letters, 66:260–263, 1991. doi: 10.1103/PhysRevLett.66.260.
+  A Simple Causal Set Simulator 9
+- Robert P. Dilworth. A decomposition theorem for partially ordered sets. Annals of Mathe-
+  matics, 51(1):161–166, 1950. doi: 10.2307/1969503.
+- Sumati Surya. The causal set approach to quantum gravity. Living Reviews in Relativity, 22
+  (1):5, 2019. doi: 10.1007/s41114-019-0023-1.
+- Dionigi M. T. Benincasa and Fay Dowker. Scalar field action on a causal set. Physical Review
+  Letters, 104:181301, 2010. doi: 10.1103/PhysRevLett.104.181301.
+
 - Dowker, F. (2005). "Causal sets and the deep structure of spacetime." _arXiv preprint gr-qc/0508109_.
-
----
-
-## License
-
-This project is provided as-is for research and educational purposes.
-
----

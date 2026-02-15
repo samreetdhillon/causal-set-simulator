@@ -23,7 +23,7 @@ def sprinkle(N, dim=2, T=1.0, rng=None):
             max_r = T/2 - abs(t) # The radius of the disk at time t
             
             if max_r > 0:
-                # Use sqrt(uniform) to ensure uniform density across the disk area
+                # We use sqrt(uniform) to ensure uniform density across the disk area
                 r = max_r * np.sqrt(rng.uniform(0, 1))
                 theta = rng.uniform(0, 2 * np.pi)
                 
@@ -40,9 +40,7 @@ def sprinkle(N, dim=2, T=1.0, rng=None):
 # ------------------ Causal relations ------------------
 def causal_matrix(points, dim):
     N = len(points)
-    # Ensure points are sorted by time (they should be from sprinkle, but this is safe)
-    # If points aren't sorted, the DP longest chain might fail.
-    
+    # Ensure points are sorted by time
     t = points[:, 0]
     # We want R[i, j] = 1 IF point i is in the past of point j
     # This means t[j] - t[i] > 0
@@ -72,7 +70,6 @@ def _transitive_closure_bool(R):
     """
     Compute transitive closure of boolean adjacency R (NxN) using repeated squaring/DP.
     R can be int/bool; result is int matrix (0/1).
-    O(N^3) worst-case but fine for moderate N.
     """
     reach = (R != 0).astype(bool)
     if reach.size == 0:

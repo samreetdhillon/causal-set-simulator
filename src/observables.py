@@ -35,7 +35,6 @@ def estimate_dimension(r):
     
     try:
         # We search for d in the range [0.5, 10.0]
-        # Most physical simulations stay within this bound.
         d_est = brentq(myrheim_meyer_func, 0.5, 10.0, args=(r,))
         return d_est
     except ValueError:

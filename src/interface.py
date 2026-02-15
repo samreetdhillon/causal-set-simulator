@@ -48,16 +48,15 @@ def run_single_mode(dim, N, padding=0.2):
     print(f"Longest chain length: {L}")
     print(f"Largest antichain size: {AC}")
     
-    # Plot the full set but highlight the bulk? 
-    # For now, let's just plot the inner causet to see the improved structure
-    #plot_causet(inner_points, R_inner, dim=dim, title=f"Bulk Causal Set (dim={dim})")
+    # Just plot the inner causet to see the improved structure
+    plot_causet(inner_points, R_inner, dim=dim, title=f"Bulk Causal Set (dim={dim})")
 
 
 def run_mc_mode(dim, N, trials, padding=0.0):
     """Run Monte Carlo analysis using the parallelized scaling_study engine"""
     print(f"\nStarting Monte Carlo study: N={N}, dim={dim}, trials={trials}...")
     
-    # Use the existing scaling_study to do the heavy lifting in parallel
+    # Use scaling_study to do the heavy lifting in parallel
     padding=padding
     results = scaling_study([N], dim=dim, trials=trials, padding=padding)
 
@@ -169,7 +168,6 @@ def run_interactive_interface():
     print("4. Transitive Percolation")
     mode_choice = input("Select an option (1-4): ").strip()
 
-    # Mapping choices to your original logic
     mode_map = {'1': 'single', '2': 'mc', '3': 'scaling', '4': 'percolation'}
     mode = mode_map.get(mode_choice)
 
@@ -195,14 +193,12 @@ def run_interactive_interface():
 
     elif mode == "mc":
         trials = int(input("Enter number of trials: "))
-        # Note: You'll need to update run_mc_mode signature to accept padding
         run_mc_mode(dim, N, trials, padding=padding)
 
     elif mode == "scaling":
         N_input = input("Enter list of N values (comma-separated, e.g., 50,100,200): ")
         N_list = [int(n.strip()) for n in N_input.split(",")]
         trials = int(input("Enter number of Monte Carlo trials per N: "))
-        # Note: You'll need to update run_scaling_mode signature to accept padding
         run_scaling_mode(dim, N_list, trials, padding=padding)
 
     elif mode == "percolation":
